@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Health Check - Example Site</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; max-width:720px; margin:40px auto; padding:20px; color:#111; }
+    header { display:flex; align-items:center; gap:12px; }
+    .status { padding:12px; border-radius:8px; display:inline-block; margin-top:12px; font-weight:600; }
+    .ok { background:#e6ffed; color:#046a0d; border:1px solid #b7f3c1; }
+    .down { background:#ffecec; color:#8a0b0b; border:1px solid #f1b3b3; }
+    pre { background:#f6f6f6; padding:12px; border-radius:6px; overflow:auto; }
+    footer { margin-top:28px; color:#666; font-size:0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ตัวอย่างเว็บไซต์สำหรับตรวจสุขภาพ (W5)</h1>
+  </header>
+
+  <p>หน้าแสดงตัวอย่าง พร้อม endpoint สำหรับตรวจสุขภาพ: <code>/health</code></p>
+
+  <button id="check">ตรวจสุขภาพตอนนี้</button>
+  <div id="result" style="margin-top:12px;"></div>
+
+  <h3>รายละเอียดผล</h3>
+  <pre id="raw">ยังไม่ได้ตรวจ</pre>
+
+  <footer>
+    Endpoint health: <code>/health</code> — ใช้ URL เต็มเช่น <code>http://localhost:3000/health</code>
+  </footer>
+
+<script>
+document.getElementById('check').addEventListener('click', async () => {
+  const resEl = document.getElementById('result');
+  const rawEl = document.getElementById('raw');
+  resEl.innerHTML = 'กำลังตรวจ...';
+  try {
+    const resp = await fetch('/health', { method: 'GET' , cache: 'no-store' });
+    const text = await resp.text();
+    rawEl.textContent = text;
+    if (resp.ok) {
+      resEl.innerHTML = '<span class="status ok">UP — ' + resp.status + '</span>';
+    } else {
+      resEl.innerHTML = '<span class="status down">DOWN — ' + resp.status + '</span>';
+    }
+  } catch (err) {
+    resEl.innerHTML = '<span class="status down">DOWN — Network Error</span>';
+    rawEl.textContent = String(err);
+  }
+});
+</script>
+</body>
+</html>

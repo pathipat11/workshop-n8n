@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>W5 — Uptime Tester (HTML)</title>
+  <style>
+    :root {
+      --fg: #111827;
+      --muted: #6b7280;
+      --bg: #f9fafb;
+      --card: #ffffff;
+      --ok: #16a34a;
+      --warn: #f59e0b;
+      --err: #dc2626;
+      --border: #e5e7eb;
+      --blue: #2563eb
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg)
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px
+    }
+
+    h1 {
+      font-size: 24px;
+      margin: 0 0 8px
+    }
+
+    .muted {
+      color: var(--muted)
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px
+    }
+
+    .g2 {
+      grid-template-columns: 1fr 1fr
+    }
+
+    .g3 {
+      grid-template-columns: 1fr 1fr 1fr
+    }
+
+    @media (max-width:760px) {
+
+      .g2,
+      .g3 {
+        grid-template-columns: 1fr
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font: inherit
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: #111827;
+      color: #fff;
+      border-radius: 12px;
+      cursor: pointer
+    }
+
+    button.ghost {
+      background: #fff;
+      color: var(--fg)
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--border)
+    }
+
+    .ok {
+      background: #ecfdf5;
+      color: var(--ok);
+      border-color: #bbf7d0
+    }
+
+    .err {
+      background: #fef2f2;
+      color: var(--err);
+      border-color: #fecaca
+    }
+
+    .warn {
+      background: #fffbeb;
+      color: var(--warn);
+      border-color: #fde68a
+    }
+
+    pre {
+      background: #0b1020;
+      color: #d1e0ff;
+      padding: 12px;
+      border-radius: 12px;
+      overflow: auto
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px
+    }
+
+    th,
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .right {
+      text-align: right
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted)
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="card" style="margin-bottom:16px">
+      <h1>W5 — Uptime Tester (HTML)</h1>
+      <p class="muted">หน้าเทสแบบไฟล์เดียวสำหรับโจทย์: Schedule → HTTP (Continue on Error) → Gmail. ใช้ตรวจปลายทาง
+        <code>/health</code> ด้วยมือหรือให้เบราว์เซอร์ยิงเป็นช่วงเวลา (สำหรับทดสอบเท่านั้น — ไม่ใช่ตัวแทนของระบบ monitor
+        จริงในฝั่งเซิร์ฟเวอร์)
+      </p>
+    </header>
+
+    <section class="card" style="margin-bottom:16px">
+      <div class="grid g3">
+        <div>
+          <label>Health URL</label>
+          <input id="healthUrl" placeholder="https://example.com/health" value="https://example.com/health" />
+        </div>
+        <div>
+          <label>Timeout (ms)</label>
+          <input id="timeoutMs" type="number" min="100" step="100" value="5000" />
+        </div>
+        <div>
+          <label>Interval</label>
+          <div class="row">
+            <select id="intervalUnit" style="max-width:160px">
+              <option value="sec">วินาที</option>
+              <option value="min" selected>นาที</option>
+            </select>
+            <input id="intervalVal" type="number" min="1" step="1" value="5" />
+          </div>
+          <div class="hint">สอดคล้องกับ Schedule Trigger ทุก 5 นาที</div>
+        </div>
+      </div>
+
+      <div class="grid g2" style="margin-top:12px">
+        <div>
+          <label>Optional: n8n Alert Webhook (ใช้แจ้งเตือนเมื่อ <em>ล่ม</em>)</label>
+          <input id="alertUrl" placeholder="https://n8n-host/webhook/uptime-alert" />
+          <div class="hint">ชี้ไปยัง Webhook ของ workflow ที่ต่อเข้า Gmail (Send Email)</div>
+        </div>
+        <div>
+          <label>HTTP Success Range</label>
+          <div class="row">
+            <select id="okMin">
+              <option>200</option>
+              <option selected>200</option>
+            </select>
+            <span class="hint">ถึง</span>
+            <select id="okMax">
+              <option>299</option>
+              <option selected>399</option>
+              <option>499</option>
+            </select>
+          </div>
+          <div class="hint">ถือว่าสำเร็จหากสถานะอยู่ระหว่างค่านี้ (ค่าเริ่มต้น 200–399)</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button id="btnOnce">Check Now</button>
+        <button id="btnStart">Start Monitoring</button>
+        <button id="btnStop" class="ghost" disabled>Stop</button>
+        <button id="btnDownload" class="ghost">Download Log (CSV)</button>
+      </div>
+
+      <div class="row" style="margin-top:12px;align-items:center">
+        <span id="statusBadge" class="badge warn">Idle</span>
+        <span class="hint" id="lastInfo">ยังไม่เคยตรวจ</span>
+      </div>
+    </section>
+
+    <section class="card" style="margin-bottom:16px">
+      <h2 style="margin:0 0 8px">ผลการเรียกล่าสุด</h2>
+      <div class="grid g3">
+        <div>
+          <div class="hint">HTTP Status</div>
+          <div id="lastStatus">-</div>
+        </div>
+        <div>
+          <div class="hint">Latency (ms)</div>
+          <div id="lastLatency">-</div>
+        </div>
+        <div>
+          <div class="hint">Checked at</div>
+          <div id="lastAt">-</div>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="hint">Response preview</div>
+        <pre id="respPreview">(ไม่มีข้อมูล)</pre>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin:0 0 8px">Log</h2>
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Status</th>
+            <th class="right">Latency (ms)</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 8px">ตัวอย่าง Payload ที่จะยิงไปยัง n8n Webhook เมื่อเกิด Error</h3>
+      <pre id="payloadExample"></pre>
+      <div class="hint">ต่อใน n8n: <code>Webhook (Trigger)</code> → <code>Gmail (Send Email)</code>
+        แล้วแมปฟิลด์ด้านล่างเข้ากับอีเมล</div>
+    </section>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+    const healthUrl = el('healthUrl');
+    const timeoutMs = el('timeoutMs');
+    const intervalUnit = el('intervalUnit');
+    const intervalVal = el('intervalVal');
+    const okMin = el('okMin');
+    const okMax = el('okMax');
+    const alertUrl = el('alertUrl');
+
+    const btnOnce = el('btnOnce');
+    const btnStart = el('btnStart');
+    const btnStop = el('btnStop');
+    const btnDownload = el('btnDownload');
+
+    const statusBadge = el('statusBadge');
+    const lastInfo = el('lastInfo');
+    const lastStatus = el('lastStatus');
+    const lastLatency = el('lastLatency');
+    const lastAt = el('lastAt');
+    const respPreview = el('respPreview');
+    const logTableBody = document.querySelector('#logTable tbody');
+
+    const payloadExample = el('payloadExample');
+
+    let timer = null;
+    let logs = [];
+
+    function setBadge(kind, text) {
+      statusBadge.className = 'badge ' + (kind || '');
+      statusBadge.textContent = text;
+    }
+
+    function fmtDate(d) {
+      try { return new Date(d).toLocaleString(); } catch (_) { return String(d); }
+    }
+
+    function toCSV(rows) {
+      const esc = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+      const head = ['time', 'status', 'latency_ms', 'result'];
+      return [head.join(','), ...rows.map(r => [esc(r.time), r.status, r.latency_ms, esc(r.result)].join(','))].join('\n');
+    }
+
+    function downloadCSV() {
+      const blob = new Blob([toCSV(logs)], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'uptime-log.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function fetchWithTimeout(url, ms) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(t);
+        return res;
+      } catch (err) {
+        clearTimeout(t);
+        throw err;
+      }
+    }
+
+    function successRange() {
+      const min = parseInt(okMin.value, 10) || 200;
+      const max = parseInt(okMax.value, 10) || 399;
+      return { min, max };
+    }
+
+    function buildAlertPayload({ ok, status, latency, error, url }) {
+      const payload = {
+        ok,
+        statusCode: status ?? null,
+        latencyMs: latency ?? null,
+        url,
+        checkedAt: new Date().toISOString(),
+        message: error ? String(error) : (ok ? 'OK' : 'Not OK'),
+      };
+      payloadExample.textContent = JSON.stringify(payload, null, 2);
+      return payload;
+    }
+
+    async function maybeSendAlert(payload) {
+      const webhook = alertUrl.value.trim();
+      if (!webhook) return; // optional
+      try {
+        await fetch(webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn('Failed to POST alert to n8n webhook:', err);
+      }
+    }
+
+    async function runOnce() {
+      const url = healthUrl.value.trim();
+      const ms = parseInt(timeoutMs.value, 10) || 5000;
+      const { min, max } = successRange();
+
+      setBadge('warn', 'Checking…');
+      lastInfo.textContent = 'กำลังตรวจ ' + url;
+
+      const t0 = performance.now();
+      let status = null; let ok = false; let bodyText = ''; let errMsg = null;
+      try {
+        const res = await fetchWithTimeout(url, ms);
+        status = res.status;
+        ok = (status >= min && status <= max);
+        const ct = res.headers.get('content-type') || '';
+        bodyText = ct.includes('application/json') ? JSON.stringify(await res.json(), null, 2) : await res.text();
+      } catch (err) {
+        errMsg = err.name === 'AbortError' ? 'Timeout' : (err && err.message ? err.message : 'Network error');
+        ok = false;
+      }
+      const t1 = performance.now();
+      const latency = Math.round(t1 - t0);
+      const nowIso = new Date().toISOString();
+
+      lastStatus.textContent = status !== null ? status : '-';
+      lastLatency.textContent = latency;
+      lastAt.textContent = fmtDate(nowIso);
+      respPreview.textContent = ok ? (bodyText || '(empty)') : (errMsg || bodyText || '(no response)');
+
+      const row = { time: nowIso, status: status ?? 'ERR', latency_ms: latency, result: ok ? 'OK' : (errMsg || 'ERROR') };
+      logs.unshift(row);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${fmtDate(row.time)}</td><td>${row.status}</td><td class="right">${row.latency_ms}</td><td>${row.result}</td>`;
+      logTableBody.prepend(tr);
+
+      const payload = buildAlertPayload({ ok, status, latency, error: errMsg, url });
+
+      if (ok) { setBadge('ok', 'Healthy'); lastInfo.textContent = 'ล่าสุด: OK'; }
+      else { setBadge('err', 'Unhealthy'); lastInfo.textContent = 'ล่าสุด: ไม่สำเร็จ'; await maybeSendAlert(payload); }
+    }
+
+    function start() {
+      if (timer) return; // already running
+      runOnce();
+      const n = Math.max(1, parseInt(intervalVal.value, 10) || 5);
+      const unit = intervalUnit.value;
+      const ms = n * (unit === 'sec' ? 1000 : 60000);
+      timer = setInterval(runOnce, ms);
+      btnStart.disabled = true; btnStop.disabled = false;
+    }
+    function stop() {
+      if (timer) { clearInterval(timer); timer = null; }
+      btnStart.disabled = false; btnStop.disabled = true;
+      setBadge('warn', 'Idle');
+    }
+
+    // Wire up
+    btnOnce.addEventListener('click', runOnce);
+    btnStart.addEventListener('click', start);
+    btnStop.addEventListener('click', stop);
+    btnDownload.addEventListener('click', downloadCSV);
+
+    // Initialize payload example
+    buildAlertPayload({ ok: false, status: null, latency: null, error: 'Example error', url: healthUrl.value });
+  </script>
+</body>
+
+</html>
